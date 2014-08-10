@@ -12,8 +12,10 @@
 #include "face-detection.h"
 
 static CvMemStorage* storage = 0;
-static CvHaarClassifierCascade* cascade = 0;
-const char* cascade_name =
+static CvHaarClassifierCascade* face_cascade = 0;
+const char* cascade_face_name =
+		"./resource/haarcascade_frontalface_alt2.xml";
+const char* cascade_eye_name =
 		"./resource/haarcascade_frontalface_alt2.xml";
 int DetectFaces( IplImage* img, CvSeq** faces) {
 	//int scale = 1; // Create a new image based on the input image
@@ -31,6 +33,18 @@ int DetectFaces( IplImage* img, CvSeq** faces) {
 		cvCvtColor( scaledImg, greyImg, CV_BGR2GRAY );
 		detectImg = greyImg;	// Use the greyscale image.
 	}*/
+	IplImage *greyImg = 0;
+	CvSize size = cvSize(img->width, img->height);
+
+	if (img->nChannels > 1) {
+		greyImg = cvCreateImage(size, IPL_DEPTH_8U, 1 );
+		cvCvtColor( img, greyImg, CV_BGR2GRAY );
+	}else{
+		greyImg = img;
+	}
+	IplImage* final = cvCreateImage(cvSize(greyImg->width, greyImg->height), IPL_DEPTH_8U,1);
+	cvEqualizeHist(greyImg,final);
+
 	// Clear the memory storage which was used before
 	if (storage == NULL){
 		storage = cvCreateMemStorage(0);
@@ -38,13 +52,13 @@ int DetectFaces( IplImage* img, CvSeq** faces) {
 	}
 	cvClearMemStorage( storage );
 	// Find whether the cascade is loaded, to find the faces. If yes, then:
-	if( cascade == NULL){
-		cascade = (CvHaarClassifierCascade*)cvLoad( cascade_name, 0, 0, 0 );
-		if( !cascade )	return 2;
+	if( face_cascade == NULL){
+		face_cascade = (CvHaarClassifierCascade*)cvLoad( cascade_face_name, 0, 0, 0 );
+		if( !face_cascade )	return 2;
 	}
 	// There can be more than one face in an image. So create a growable sequence of faces.
 	// Detect the objects and store them in the sequence
-	*faces = cvHaarDetectObjects( img, cascade, storage, 1.1, 2, CV_HAAR_DO_CANNY_PRUNING, cvSize(40, 40), cvSize(0,0));
+	*faces = cvHaarDetectObjects( final, face_cascade, storage, 1.1, 2, CV_HAAR_DO_CANNY_PRUNING, cvSize(40, 40), cvSize(0,0));
 	// Loop the number of faces found.
 	if (!faces)	return 3;
 

@@ -23,6 +23,7 @@ int TestDBDelete();
 int TestDBUpdate();
 int TestSearch();
 int InsertFaceDB();
+void AnalyzeDepthImage();
 int main()
 {
 
@@ -63,10 +64,74 @@ int main()
 //		fprintf(stderr, "TestDBUpdate() Failed!\n");
 //	}
 //	InsertFaceDB();
-	if (TestSearch()){
-		fprintf(stderr, "TestSearch() Failed!\n");
-	}
+//	if (TestSearch()){
+//		fprintf(stderr, "TestSearch() Failed!\n");
+//	}
+//	AnalyzeDepthImage();
 	return 0;
+}
+void AnalyzeDepthImage(){
+	char* filename = "./sample/query2/122.png";
+	IplImage* gray = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage* depth = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage* rgb = cvLoadImage(filename, CV_LOAD_IMAGE_COLOR);
+
+	for(int i=0; i<depth->width; i++){
+		for (int j=0; j<depth->height; j++){
+			unsigned char dval = (unsigned char)depth->imageData[j*depth->widthStep+ i];
+			if (dval<90){
+				gray->imageData[j*depth->widthStep+ i] = 255;
+			}
+			//printf("%i, ", (unsigned char)depth->imageData[j*depth->widthStep+ i]);
+		}
+		//printf("\n");
+	}
+	cvShowImage("adjusted for depth", gray);
+	cvWaitKey(0);
+	//storage = cvCreateMemStorage(0);
+	CvSeq* faces;
+	int retCode = DetectFaces(gray, &faces);
+	if (retCode){
+		printf("ERROR: DetectFacesInImage\n" );
+	}else{
+		printf("%d faces detected!\n", faces->total);
+	}
+	// Create two points to represent the face locations
+	CvPoint pt1, pt2;
+	for(int i = 0; i < faces->total; i++ )
+	{
+		// Create a new rectangle for drawing the face
+
+		CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
+		pt1.x = r->x;//*scale;
+		pt2.x = (r->x+r->width);//*scale;
+		pt1.y = r->y;//*scale;
+		pt2.y = (r->y+r->height);//*scale;
+		// Draw the rectangle in the input image
+		cvRectangle( rgb, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
+	}
+	retCode = DetectFaces(rgb, &faces);
+	if (retCode){
+		printf("ERROR: DetectFacesInImage\n" );
+	}else{
+		printf("%d faces detected!\n", faces->total);
+	}
+	// Create two points to represent the face locations
+	for(int i = 0; i < faces->total; i++ )
+	{
+		// Create a new rectangle for drawing the face
+
+		CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
+		pt1.x = r->x;//*scale;
+		pt2.x = (r->x+r->width);//*scale;
+		pt1.y = r->y;//*scale;
+		pt2.y = (r->y+r->height);//*scale;
+		// Draw the rectangle in the input image
+		cvRectangle( rgb, pt1, pt2, CV_RGB(0,255,0), 3, 8, 0 );
+	}
+	// Show the image in the window named "result"
+	cvShowImage( "result", rgb );
+	cvWaitKey(0);
 }
 int InsertFaceDB(){
 	// Insert Face Images into DB
@@ -92,7 +157,7 @@ int TestSearch(){
 	float* outputScores = (float*)malloc(num*sizeof(float));
 
 	int retCode = Search(
-			"./sample/facedb/0",
+			"./sample/query2/102",
 			"./sample/db",
 			categories,
 			3,
@@ -273,9 +338,7 @@ int TestCalcHistogram(){
 	return 0;
 }
 int TestFaceDetection(){
-	IplImage* frame; //Initialise input image pointer
-
-	frame = cvLoadImage("./sample/images/people-01.jpg", CV_LOAD_IMAGE_COLOR);
+	IplImage* frame = getGrayScaleImg("./sample/query2/112.png");
 	printf("(%d, %d)\n", frame->depth, frame->nChannels);
 	if (frame==NULL){
 		printf("can't load the image!");
@@ -327,6 +390,8 @@ IplImage* getGrayScaleImg(const char* filename){
 		greyImg = cvCreateImage(size, IPL_DEPTH_8U, 1 );
 		cvCvtColor( frame, greyImg, CV_BGR2GRAY );
 	}
+	IplImage* final = cvCreateImage(cvSize(frame->width, frame->height), IPL_DEPTH_8U,1);
+	cvEqualizeHist(greyImg,final);
 	frame = greyImg;	// Use the greyscale image.
 	return frame;
 }
