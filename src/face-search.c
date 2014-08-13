@@ -19,11 +19,21 @@
 #include "face-recognition.h"
 #include "face-search.h"
 
-#define FACE_THRESHOLD 5.0
+#define FACE_THRESHOLD 100.0
 typedef struct _FileWithScore{
 	char* img_file;
 	float score;
 } FileWithScore;
+
+const float WEIGHT[49] = //7*7=49
+		{	2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f,
+			2.0f, 4.0f, 4.0f, 1.0f, 4.0f, 4.0f, 2.0f,
+			1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+			0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 1.0f, 2.0f, 1.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f
+		};
 
 void ReleaseFeature(FEATURE* feature);
 void SaveFeature(FEATURE* feature, char* fileName);
@@ -98,6 +108,7 @@ int MakeFeatureInMem(
 		gray_img = cvCreateImage(cvGetSize(RGBA), IPL_DEPTH_8U, 1 );
 		cvCvtColor( RGBA, gray_img, CV_BGR2GRAY );
 	}
+//	cvEqualizeHist(gray_img,gray_img);
 
 	feature->grid_x 	= GRID_X;
 	feature->grid_y 	= GRID_Y;
@@ -198,6 +209,7 @@ void ReadFeature(
 	cvReleaseFileStorage( &fs );
 
 }
+
 float Compare(
 		//IplImage* 	RGBA,
 		//IplImage* 	depth,
@@ -207,23 +219,40 @@ float Compare(
 		//IplImage* 	DBDepth,
 		//IplImage*	DBMask,
 		FEATURE* 	DBFeature){
-	int matched = 0; //number of matching faces in the db image
+	float queryScore = 0.0;
 	for (int i=0; i<feature->num_faces; i++){
 		//check whether the input face exists in the db image
 		float minDist = FLT_MAX;
 		int faceidx = -1;
 		for (int j=0; j<DBFeature->num_faces; j++){
-			float dist = CompareHistograms(feature->histogram[i], DBFeature->histogram[j]);
-			if (dist<minDist && dist<FACE_THRESHOLD){
+			float dist = CompareHistograms(feature->histogram[i], DBFeature->histogram[j], WEIGHT);
+			if (dist<minDist){// && dist<FACE_THRESHOLD){
 				minDist = dist;
 				faceidx = j;
 			}
 		}
 		if (faceidx!=-1){
-			matched+=1;
+			queryScore+=(-1.0f*(minDist/FACE_THRESHOLD)) + 1.0f; //[-inf, 1.0];
 		}
 	}
-	return matched*1.0f/feature->num_faces + matched*1.0f/DBFeature->num_faces;
+	float DBScore = 0.0;
+	for (int i=0; i<DBFeature->num_faces; i++){
+		//check whether the input face exists in the db image
+		float minDist = FLT_MAX;
+		int faceidx = -1;
+		for (int j=0; j<feature->num_faces; j++){
+			float dist = CompareHistograms(DBFeature->histogram[i], feature->histogram[j], WEIGHT);
+			if (dist<minDist){// && dist<FACE_THRESHOLD){
+				minDist = dist;
+				faceidx = j;
+			}
+		}
+		if (faceidx!=-1){
+			DBScore+=(-1.0f*(minDist/FACE_THRESHOLD)) + 1.0f; //[-inf, 1.0];
+		}
+	}
+	float totalScore = (feature->num_faces==0? 0 : queryScore/feature->num_faces) + (DBFeature->num_faces==0? 0:DBScore/DBFeature->num_faces);
+	return totalScore;// max score  = 1.0 + 1.0 = 2.0
 }
 
 

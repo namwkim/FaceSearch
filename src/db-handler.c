@@ -60,7 +60,7 @@ int Insert(
 
 	if (Exists(srcfile)==0){
 		fprintf(stderr, "Depth file does not exists!\n");
-		return 2;
+		//return 2;
 	}
 	strcpy(dstfile, dstpath);
 	strcat(dstfile, DEPTH_EXT);
@@ -131,7 +131,7 @@ int Delete(
 
 	if(Exists(srcfile) && remove(srcfile)){
 		fprintf(stderr, "Failed to delete image file!\n");
-		return 1;
+		//return 1;
 	}
 
 	strcpy(srcfile, srcpath);
@@ -139,7 +139,7 @@ int Delete(
 
 	if(Exists(srcfile) && remove(srcfile)){
 		fprintf(stderr, "Failed to delete depth file!\n");
-		return 2;
+		//return 2;
 	}
 
 	strcpy(srcfile, srcpath);
@@ -147,7 +147,7 @@ int Delete(
 
 	if(Exists(srcfile) && remove(srcfile)){
 		fprintf(stderr, "Failed to delete mask file!\n");
-		return 3;
+		//return 3;
 	}
 
 	strcpy(srcfile, srcpath);
@@ -155,7 +155,7 @@ int Delete(
 
 	if(Exists(srcfile) && remove(srcfile)){
 		fprintf(stderr, "Failed to delete feature file!\n");
-		return 4;
+		//return 4;
 	}
 
 	return 0;
@@ -204,6 +204,7 @@ int Update(
                 lstat(srcfile, &buf);
         		if(S_ISREG(buf.st_mode)){  //regular file
         			if (IsImageFile(catFile->d_name)){//For each Image File
+        				printf("updating %s\n", catFile->d_name);
         				strcpy(srcpath, cat_dir_path);
         				strcat(srcpath,"/");
         				const char* ext = GetFileExt(catFile->d_name);
@@ -216,7 +217,7 @@ int Update(
 
         				if (Exists(srcfile)==0){
         					fprintf(stderr, "Depth file does not exists!\n");
-        					return 1;
+        					//return 1;
         				}
 
         				//check mask file
@@ -242,9 +243,10 @@ int Update(
         				strcpy(srcfile, srcpath);
         				strcat(srcfile, FTR_EXT);
 
-        				if (Exists(srcfile)==0){
-        					MakeFeature(srcpath);
-        				}
+        				//if (Exists(srcfile)==0){
+        				//always update features
+						MakeFeature(srcpath);
+        				//}
         			}
         		}
         	}
@@ -256,3 +258,51 @@ int Update(
 	return 0;
 }
 
+
+void ForAllImages(char* DBFolder, void (*f)(char*)){
+	char cat_dir_path[FLEN], srcpath[FLEN], srcfile[FLEN];
+	DIR *dbDir = NULL;
+	struct dirent *dbFile = NULL;
+	struct stat buf;
+
+	dbDir = opendir(DBFolder);
+	if(!dbDir) {
+		fprintf(stderr, "ERROR\n");
+	}
+	while( (dbFile = readdir(dbDir)) != NULL ){
+        memset(&buf, 0, sizeof(struct stat));
+
+        strcpy(cat_dir_path, DBFolder);
+		strcat(cat_dir_path,"/");
+		strcat(cat_dir_path, dbFile->d_name);
+		lstat(cat_dir_path, &buf);
+        if(	strcmp(dbFile->d_name, ".")!=0 &&
+			strcmp(dbFile->d_name, "..")!=0 &&
+			S_ISDIR(buf.st_mode)){ //folder
+
+        	DIR *catDir = NULL;
+        	struct dirent *catFile = NULL;
+        	catDir = opendir(cat_dir_path);
+        	if(!catDir) { //directory
+        		fprintf(stderr, "ERROR\n");
+        	}
+        	while( (catFile = readdir(catDir)) != NULL ){
+                memset(&buf, 0, sizeof(struct stat));
+                strcpy(srcfile, cat_dir_path);
+				strcat(srcfile,"/");
+				strcat(srcfile,catFile->d_name);
+                lstat(srcfile, &buf);
+        		if(S_ISREG(buf.st_mode)){  //regular file
+        			if (IsImageFile(catFile->d_name)){//For each Image File
+        				strcpy(srcpath, cat_dir_path);
+        				strcat(srcpath,"/");
+        				strcat(srcpath,catFile->d_name);
+        				(*f)(srcpath);
+        			}
+        		}
+        	}
+        	closedir(catDir);
+        }
+	}
+	closedir(dbDir);
+}

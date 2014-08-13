@@ -3,6 +3,7 @@
 #include "math.h"
 #include "cxcore.h"
 #include "stdio.h"
+#include "time.h"
 #include "string.h"
 #include "float.h"
 #include "face-detection.h"
@@ -10,6 +11,7 @@
 #include "db-handler.h"
 #include "file-handler.h"
 #include "face-search.h"
+
 
 IplImage* getGrayScaleImg(const char* filename);
 int TestCalcHistogram();
@@ -24,6 +26,7 @@ int TestDBUpdate();
 int TestSearch();
 int InsertFaceDB();
 void AnalyzeDepthImage();
+void TestAllFaceDetection();
 int main()
 {
 
@@ -64,39 +67,32 @@ int main()
 //		fprintf(stderr, "TestDBUpdate() Failed!\n");
 //	}
 //	InsertFaceDB();
-//	if (TestSearch()){
+	if (TestSearch()){
+		fprintf(stderr, "TestSearch() Failed!\n");
+	}
+//	if (TestSearchJustOne()){
 //		fprintf(stderr, "TestSearch() Failed!\n");
 //	}
 //	AnalyzeDepthImage();
+//	TestAllFaceDetection();
 	return 0;
 }
-void AnalyzeDepthImage(){
-	char* filename = "./sample/query2/122.png";
-	IplImage* gray = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
-	IplImage* depth = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
-	IplImage* rgb = cvLoadImage(filename, CV_LOAD_IMAGE_COLOR);
-
-	for(int i=0; i<depth->width; i++){
-		for (int j=0; j<depth->height; j++){
-			unsigned char dval = (unsigned char)depth->imageData[j*depth->widthStep+ i];
-			if (dval<90){
-				gray->imageData[j*depth->widthStep+ i] = 255;
-			}
-			//printf("%i, ", (unsigned char)depth->imageData[j*depth->widthStep+ i]);
-		}
-		//printf("\n");
+void TestFaceDetectionEach(char* filename){
+	IplImage* frame = cvLoadImage(filename, CV_LOAD_IMAGE_COLOR);
+	//printf("(%d, %d)\n", frame->depth, frame->nChannels);
+	if (frame==NULL){
+		fprintf(stderr, "can't load the image!");
 	}
-	cvShowImage("adjusted for depth", gray);
-	cvWaitKey(0);
 	//storage = cvCreateMemStorage(0);
 	CvSeq* faces;
-	int retCode = DetectFaces(gray, &faces);
+	int retCode = DetectFaces(frame, &faces);
 	if (retCode){
 		printf("ERROR: DetectFacesInImage\n" );
 	}else{
-		printf("%d faces detected!\n", faces->total);
+		printf("%d faces detected (%s)!\n", faces->total, filename);
 	}
 	// Create two points to represent the face locations
+	/*
 	CvPoint pt1, pt2;
 	for(int i = 0; i < faces->total; i++ )
 	{
@@ -108,8 +104,61 @@ void AnalyzeDepthImage(){
 		pt1.y = r->y;//*scale;
 		pt2.y = (r->y+r->height);//*scale;
 		// Draw the rectangle in the input image
-		cvRectangle( rgb, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
+		cvRectangle( frame, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
 	}
+	// Show the image in the window named "result"
+	cvShowImage( "result", frame );
+	cvWaitKey(0);
+	*/
+}
+void TestAllFaceDetection(){
+	ForAllImages("./sample/db", TestFaceDetectionEach);
+
+}
+void AnalyzeDepthImage(){
+	char* filename 	= "./sample/query2/22.png";
+	IplImage* gray 	= cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage* depth = cvLoadImage("./sample/query2/22.depth.png", CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage* rgb 	= cvLoadImage(filename, CV_LOAD_IMAGE_COLOR);
+	IplImage* show 	= cvCreateImage(cvSize(gray->width, gray->height), IPL_DEPTH_8U, 3);
+
+	for(int i=0; i<depth->width; i++){
+		for (int j=0; j<depth->height; j++){
+			unsigned char dval = (unsigned char)depth->imageData[j*depth->widthStep+ i];
+			if (dval<90){
+				gray->imageData[j*depth->widthStep+ i] = 255;
+			}
+			//printf("%i, ", (unsigned char)depth->imageData[j*depth->widthStep+ i]);
+		}
+		//printf("\n");
+	}
+	//cvShowImage("adjusted for depth", gray);
+	//cvWaitKey(0);
+	//storage = cvCreateMemStorage(0);
+	CvSeq* faces;
+	int retCode = DetectFaces(gray, &faces);
+	if (retCode){
+		printf("ERROR: DetectFacesInImage\n" );
+	}else{
+		printf("%d faces detected!\n", faces->total);
+	}
+	// Create two points to represent the face locations
+	CvPoint pt1, pt2;
+	cvConvertImage(gray, show, CV_GRAY2RGB);
+	for(int i = 0; i < faces->total; i++ )
+	{
+		// Create a new rectangle for drawing the face
+
+		CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
+		pt1.x = r->x;//*scale;
+		pt2.x = (r->x+r->width);//*scale;
+		pt1.y = r->y;//*scale;
+		pt2.y = (r->y+r->height);//*scale;
+		// Draw the rectangle in the input image
+		cvRectangle( show, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
+	}
+	cvShowImage( "result", show );
+	cvWaitKey(0);
 	retCode = DetectFaces(rgb, &faces);
 	if (retCode){
 		printf("ERROR: DetectFacesInImage\n" );
@@ -127,10 +176,10 @@ void AnalyzeDepthImage(){
 		pt1.y = r->y;//*scale;
 		pt2.y = (r->y+r->height);//*scale;
 		// Draw the rectangle in the input image
-		cvRectangle( rgb, pt1, pt2, CV_RGB(0,255,0), 3, 8, 0 );
+		cvRectangle( show, pt1, pt2, CV_RGB(0,255,0), 3, 8, 0 );
 	}
 	// Show the image in the window named "result"
-	cvShowImage( "result", rgb );
+	cvShowImage( "result", show );
 	cvWaitKey(0);
 }
 int InsertFaceDB(){
@@ -149,18 +198,91 @@ int InsertFaceDB(){
 	}
 	return 0;
 }
+
 int TestSearch(){
+	char* dbFolder = "./sample/db";
+	char* queryFolder = "./sample/query2/";
+	int testfileNums[13] = {12, 22, 32, 42, 52, 62, 72, 82, 92, 102, 112, 122, 142};
+
+	int num = 20;
+	int num_cat = 1;
+	char* categories[1] = {"faces"};
+	char** outputFileNames = (char**) malloc(num*sizeof(char*));
+	float* outputScores = (float*)malloc(num*sizeof(float));
+
+	char srcfile[1024];
+	char num2str[1024];
+	float avgAcc1 = 0.0f;
+	float avgAcc2 = 0.0f;
+	float avgDur  = 0.0f;
+	for (int i=0; i<13; i++){
+		strcpy(srcfile, queryFolder);
+		sprintf(num2str, "%d", testfileNums[i]);
+		strcat(srcfile, num2str);
+		printf("Testing %s...\n", srcfile);
+
+		clock_t start = clock();
+		int retCode = Search(
+					srcfile,
+					dbFolder,
+					categories,
+					num_cat,
+					outputFileNames,
+					outputScores,
+					num);
+			//char id[1024];
+		clock_t end = clock();
+		int found10 = 0;
+		int found20 = 0;
+		float exectime = ((float)(end - start))/CLOCKS_PER_SEC;
+		for (int j=0; j<num; j++){
+			char fileNumStr[1024];
+			int	 fileNum;
+			char *pch = strrchr(outputFileNames[j], '/')+1;
+			strncpy(fileNumStr, pch, strlen(pch)-4);
+			strcat(fileNumStr, "\0");
+			fileNumStr[(pch+strlen(pch)-4)-pch]='\0';
+			sscanf(fileNumStr, "%d", &fileNum);
+			int diff = fileNum - testfileNums[i];
+			if (diff>=0 && diff<=9){
+				if (j<20) found20++;
+				if (j<10) found10++;
+			}
+			printf("%s, %d-(%d)th %f\n", outputFileNames[j], diff, j+1, outputScores[j]);
+			//IplImage* matched = cvLoadImage(outputFileNames[i], CV_LOAD_IMAGE_COLOR);
+			//sprintf(id, "Matched %d", i);
+			//cvShowImage(id, matched);
+		}
+		float accuracy10 = found10*1.0f/10.0f*100.0f;
+		float accuracy20 = found20*2.0f/20.0f*100.0f;
+		avgAcc1+=accuracy10;
+		avgAcc2+=accuracy20;
+		avgDur += exectime;
+		printf("accuracy10 : %f\n", accuracy10);
+		printf("accuracy20 : %f\n", accuracy20);
+		printf("exec time : %f\n", exectime);
+
+			//cvWaitKey(0);
+		if (retCode) return retCode;
+	}
+	printf("avg acc10: %f\n", avgAcc1/13.0f);
+	printf("avg acc20: %f\n", avgAcc2/13.0f);
+	printf("exec time: %f\n", avgDur/13.0f);
+
+	return 0;
+}
+int TestSearchJustOne(){
 
 	int num = 10;
-	char* categories[3] = {"category1", "category2", "faces"};
+	char* categories[1] = {"faces"};
 	char** outputFileNames = (char**) malloc(num*sizeof(char*));
 	float* outputScores = (float*)malloc(num*sizeof(float));
 
 	int retCode = Search(
-			"./sample/query2/102",
+			"./sample/query2/72",
 			"./sample/db",
 			categories,
-			3,
+			1,
 			outputFileNames,
 			outputScores,
 			num);
@@ -282,7 +404,7 @@ int TestFaceRecognition(){
 
 		IplImage* lbp = CalcLBP(faces[i], 1, 8);
 		CvMat* hist = CalcSpatialHistogram(lbp, pow(2, 8), 8, 8);
-		float score = CompareHistograms(histQuery, hist);
+		float score = CompareHistograms(histQuery, hist, NULL);
 		if (score < minScore){
 			minScore 	= score;
 			minIdx 		= i;
@@ -307,14 +429,21 @@ int TestCreateSubImage(){
 }
 int TestCalcLBP(){
 	printf("Testing TestCalcLBP...\n");
-	IplImage* greyImg = getGrayScaleImg("./sample/images/people-01.jpg");
+	IplImage* greyImg = getGrayScaleImg("./sample/query2/102.png");
 
 	IplImage* lbp = CalcLBP(greyImg, 1, 8);
+	for (int i=0; i<lbp->height; i++){
+		for (int j=0; j<lbp->width; j++){
+			printf("%d", (unsigned char) lbp->imageData[i*lbp->widthStep + j]);
+		}
+		printf("\n");
+	}
 	if (lbp==NULL){
 		return 1;
 	}
 	cvShowImage( "result", lbp );
 	cvWaitKey(0);
+	return 0;
 }
 
 int TestCalcHistogram(){
@@ -338,7 +467,7 @@ int TestCalcHistogram(){
 	return 0;
 }
 int TestFaceDetection(){
-	IplImage* frame = getGrayScaleImg("./sample/query2/112.png");
+	IplImage* frame = getGrayScaleImg("./sample/db/faces/140.png");
 	printf("(%d, %d)\n", frame->depth, frame->nChannels);
 	if (frame==NULL){
 		printf("can't load the image!");

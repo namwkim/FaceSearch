@@ -10,6 +10,7 @@
 #include "math.h"
 #include "float.h"
 #include "face-recognition.h"
+#include "helper.h"
 
 #define UCHAR unsigned char
 #define CV_GET(img,y,x) CV_IMAGE_ELEM((img), UCHAR, (y), (x))
@@ -62,7 +63,7 @@ IplImage* CalcLBP(IplImage* src, int radius, int neighbors){
         		UCHAR newV = w1*V1 + w2*V2 + w3*V3 + w4*V4;
 
         		int pos = (i-radius)*dst->widthStep + (j-radius);
-        		dst->imageData[pos] = (newV>src->imageData[i*src->widthStep + j])<<n;
+        		dst->imageData[pos] += (newV>src->imageData[i*src->widthStep + j])<<n;
         	}
         }
 	}
@@ -124,30 +125,23 @@ CvMat* CalcSpatialHistogram(IplImage* src, int numPatterns, int grid_x, int grid
 	return matrix;
 }
 
-float CompareHistograms(CvMat* hist1, CvMat* hist2){
+float CompareHistograms(CvMat* hist1, CvMat* hist2, const float* weight){
 	if (hist1->rows!=hist2->rows || hist1->cols!=hist2->cols){
 		return FLT_MAX;
 	}
-	double totalDist = 0.0;
+	float totalDist = 0.0f;
 	for (int i=0; i<hist1->rows; i++){
+		float subTotal = 0.0f;
 		for (int j=0; j<hist1->cols; j++){
 			int pos = i*hist1->cols + j;
-			double a = hist1->data.fl[pos];
-			double b = hist2->data.fl[pos];
-			double c = a-b;
-			if (fabs(a) > FLT_EPSILON)
-				totalDist += (c*c/a);
+			float a = hist1->data.fl[pos];
+			float b = hist2->data.fl[pos];
+			float c = a-b;
+			if (fabs(a+b) > FLT_EPSILON)
+				subTotal += (1.0f/2.0f)*((c*c)/(a+b));
 		}
+		totalDist += (weight==NULL? subTotal : subTotal*weight[i]);
 	}
 	return totalDist;
 }
-IplImage* CreateSubImg(IplImage* img, CvRect roiRect) {
 
-	cvSetImageROI(img, roiRect);
-	IplImage* sub_img = cvCreateImage(cvSize(roiRect.width, roiRect.height), img->depth, img->nChannels);
-	cvCopy(img, sub_img, NULL);
-	cvResetImageROI(img);
-
-	return sub_img;
-
-}

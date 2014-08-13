@@ -10,11 +10,11 @@
 
 
 
-#define RADIUS 		1
+#define RADIUS 		2
 #define NEIGHBORS	8
-#define GRID_X		8
-#define GRID_Y		8
-
+#define GRID_X		7
+#define GRID_Y		7
+extern const float WEIGHT[49];
 typedef struct _FEATURE{
 	int radius;
 	int neighbors;
