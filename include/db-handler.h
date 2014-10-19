@@ -24,10 +24,6 @@ int Update(
 		char* DBFolder
 		);
 
-void ForAllImages(
-		char* DBFolder, 	// For all images in the DB
-		void (*f)(char*) // Execute the custom function
-		);
 
 
 #endif /* DB_HANDLER_H_ */

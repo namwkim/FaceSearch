@@ -22,7 +22,7 @@ int IsImageFile(char* filename){
 		strncpy(temp, filename, strlen(filename)-4);
 		temp[strlen(filename)-4]='\0';
 		ext = GetFileExt(temp);
-		if (strcmp("depth", ext)==0 || strcmp("mask", ext)==0){
+		if (strcmp(temp+(strlen(temp)-5), "depth")==0 || strcmp("depth", ext)==0 || strcmp("mask", ext)==0){
 			return 0;
 		}
 		return 1;
@@ -70,4 +70,36 @@ int Exists(const char *fname){
         return 1;
     }
     return 0;
+}
+
+
+void ForAllImages(char* folder, void (*f)(char*)){
+	char dir_path[FLEN];
+	DIR *dbDir = NULL;
+	struct dirent *file = NULL;
+	struct stat buf;
+
+	dbDir = opendir(folder);
+	if(!dbDir) {
+		fprintf(stderr, "ERROR\n");
+	}
+	while( (file = readdir(dbDir)) != NULL ){
+        memset(&buf, 0, sizeof(struct stat));
+
+        strcpy(dir_path, folder);
+		strcat(dir_path,"/");
+		strcat(dir_path, file->d_name);
+		lstat(dir_path, &buf);
+        if(	strcmp(file->d_name, ".")!=0 &&
+			strcmp(file->d_name, "..")!=0 &&
+			S_ISDIR(buf.st_mode)){ //folder
+        	ForAllImages(dir_path, f);
+
+        }else if(S_ISREG(buf.st_mode)){  //regular file
+            if (IsImageFile(file->d_name)){//For each Image File
+            	(*f)(dir_path);
+            }
+        }
+	}
+	closedir(dbDir);
 }

@@ -8,6 +8,6 @@
 #ifndef FACE_DETECTION_H_
 #define FACE_DETECTION_H_
 
-int DetectFaces( IplImage* img, CvSeq** faces);
+int DetectFaces( IplImage* img, IplImage* depth, CvSeq** faces, int foregrnd_on);
 
 #endif /* FACE_DETECTION_H_ */

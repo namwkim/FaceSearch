@@ -18,5 +18,9 @@ int IsImageFile(char* filename);
 const char *GetFileExt(const char *filename) ;
 int Exists(const char *fname);
 int FileCopy(const char* src, const char* dst);
+void ForAllImages(
+		char* folder, 	// For all images in the DB
+		void (*f)(char*) // Execute the custom function
+		);
 
 #endif /* FILE_HANDLER_H_ */

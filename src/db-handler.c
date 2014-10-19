@@ -45,13 +45,14 @@ int Insert(
 	if (Exists(srcfile)==0){
 		fprintf(stderr, "Image file does not exists!\n");
 		return 1;
-	}
-	strcpy(dstfile, dstpath);
-	strcat(dstfile, IMG_EXT);
+	}else{
+		strcpy(dstfile, dstpath);
+		strcat(dstfile, IMG_EXT);
 
-	if (FileCopy(srcfile, dstfile)>0){
-		fprintf(stderr, "FileCopy Failed!\n");
-		return 3;
+		if (FileCopy(srcfile, dstfile)>0){
+			fprintf(stderr, "FileCopy Failed!\n");
+			return 3;
+		}
 	}
 
 	//read and copy depth file
@@ -61,13 +62,14 @@ int Insert(
 	if (Exists(srcfile)==0){
 		fprintf(stderr, "Depth file does not exists!\n");
 		//return 2;
-	}
-	strcpy(dstfile, dstpath);
-	strcat(dstfile, DEPTH_EXT);
+	}else{
+		strcpy(dstfile, dstpath);
+		strcat(dstfile, DEPTH_EXT);
 
-	if (FileCopy(srcfile, dstfile)>0){
-		fprintf(stderr, "FileCopy Failed!\n");
-		return 3;
+		if (FileCopy(srcfile, dstfile)>0){
+			fprintf(stderr, "FileCopy Failed!\n");
+			return 3;
+		}
 	}
 
 	//read and copy mask file
@@ -79,6 +81,9 @@ int Insert(
 		strcpy(srcfile, srcpath);
 		strcat(srcfile, IMG_EXT);
 		IplImage* image = cvLoadImage(srcfile, CV_LOAD_IMAGE_COLOR);
+		if (image==NULL){
+			fprintf(stderr, "Failed to Load an image file\n");
+		}
 		// Fill in 255
 		IplImage* mask = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U,1);
 		cvSet(mask, cvScalarAll(255), NULL);
@@ -164,145 +169,59 @@ int Delete(
 // DETECT IMAGES WHOSE FEATURES ARE MISSING
 // DERIVE FEATURES AND SAVE INTO THE DB
 
+void UpdateFile(char* imageFile){
+    printf("updating %s\n", imageFile);
+    char path[FLEN], file[FLEN];
+//    const char* ext = GetFileExt(imageFile);
+
+    int length = strlen(imageFile)-4;
+    strncpy(path, imageFile, length);
+    path[length]='\0';
+    //check depth file
+    strcpy(file, path);
+    strcat(file, DEPTH_EXT);
+
+    if (Exists(file)==0){
+		fprintf(stderr, "Depth file does not exists!\n");
+		//return 1;
+    }
+
+    //check mask file
+    strcpy(file, path);
+    strcat(file, MASK_EXT);
+
+    if (Exists(file)==0){
+    	strcpy(file, path);
+		strcat(file, IMG_EXT);
+		IplImage* image = cvLoadImage(file, CV_LOAD_IMAGE_COLOR);
+		if (image==NULL){
+			fprintf(stderr, "Failed to Load an image file\n");
+		}
+		// Fill in 255
+		IplImage* mask = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U,1);
+		cvSet(mask, cvScalarAll(255), NULL);
+
+		strcpy(file, path);
+		strcat(file, MASK_EXT);
+		cvSaveImage(file, mask, NULL);
+		cvReleaseImage(&image);
+		cvReleaseImage(&mask);
+    }
+
+    //check feature file
+    strcpy(file, path);
+    strcat(file, MASK_EXT);
+
+    //if (Exists(srcfile)==0){
+    //always update features
+    MakeFeature(path);
+    //}
+}
 
 int Update(
-		char* DBFolder
+		char* folder
 		){
-	char cat_dir_path[FLEN], srcpath[FLEN], srcfile[FLEN];
-
-
-	DIR *dbDir = NULL;
-	struct dirent *dbFile = NULL;
-	struct stat buf;
-
-	dbDir = opendir(DBFolder);
-	if(!dbDir) {
-		printf("ERROR\n");
-	}
-	while( (dbFile = readdir(dbDir)) != NULL ){
-        memset(&buf, 0, sizeof(struct stat));
-
-        strcpy(cat_dir_path, DBFolder);
-		strcat(cat_dir_path,"/");
-		strcat(cat_dir_path, dbFile->d_name);
-		lstat(cat_dir_path, &buf);
-        if(	strcmp(dbFile->d_name, ".")!=0 &&
-			strcmp(dbFile->d_name, "..")!=0 &&
-			S_ISDIR(buf.st_mode)){ //folder
-
-        	DIR *catDir = NULL;
-        	struct dirent *catFile = NULL;
-        	catDir = opendir(cat_dir_path);
-        	if(!catDir) { //directory
-        		printf("ERROR\n");
-        	}
-        	while( (catFile = readdir(catDir)) != NULL ){
-                memset(&buf, 0, sizeof(struct stat));
-                strcpy(srcfile, cat_dir_path);
-				strcat(srcfile,"/");
-				strcat(srcfile,catFile->d_name);
-                lstat(srcfile, &buf);
-        		if(S_ISREG(buf.st_mode)){  //regular file
-        			if (IsImageFile(catFile->d_name)){//For each Image File
-        				printf("updating %s\n", catFile->d_name);
-        				strcpy(srcpath, cat_dir_path);
-        				strcat(srcpath,"/");
-        				const char* ext = GetFileExt(catFile->d_name);
-        				int length = (ext-1)-catFile->d_name;
-        				strncat(srcpath, catFile->d_name, length);
-
-        				//check depth file
-        				strcpy(srcfile, srcpath);
-        				strcat(srcfile, DEPTH_EXT);
-
-        				if (Exists(srcfile)==0){
-        					fprintf(stderr, "Depth file does not exists!\n");
-        					//return 1;
-        				}
-
-        				//check mask file
-        				strcpy(srcfile, srcpath);
-        				strcat(srcfile, MASK_EXT);
-
-        				if (Exists(srcfile)==0){
-        					strcpy(srcfile, srcpath);
-        					strcat(srcfile, IMG_EXT);
-        					IplImage* image = cvLoadImage(srcfile, CV_LOAD_IMAGE_COLOR);
-        					// Fill in 255
-        					IplImage* mask = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U,1);
-        					cvSet(mask, cvScalarAll(255), NULL);
-
-        					strcpy(srcfile, srcpath);
-        					strcat(srcfile, MASK_EXT);
-        					cvSaveImage(srcfile, mask, NULL);
-        					cvReleaseImage(&image);
-        					cvReleaseImage(&mask);
-        				}
-
-        				//check feature file
-        				strcpy(srcfile, srcpath);
-        				strcat(srcfile, FTR_EXT);
-
-        				//if (Exists(srcfile)==0){
-        				//always update features
-						MakeFeature(srcpath);
-        				//}
-        			}
-        		}
-        	}
-        	closedir(catDir);
-        }
-	}
-	closedir(dbDir);
-
+	ForAllImages(folder, UpdateFile);
 	return 0;
 }
 
-
-void ForAllImages(char* DBFolder, void (*f)(char*)){
-	char cat_dir_path[FLEN], srcpath[FLEN], srcfile[FLEN];
-	DIR *dbDir = NULL;
-	struct dirent *dbFile = NULL;
-	struct stat buf;
-
-	dbDir = opendir(DBFolder);
-	if(!dbDir) {
-		fprintf(stderr, "ERROR\n");
-	}
-	while( (dbFile = readdir(dbDir)) != NULL ){
-        memset(&buf, 0, sizeof(struct stat));
-
-        strcpy(cat_dir_path, DBFolder);
-		strcat(cat_dir_path,"/");
-		strcat(cat_dir_path, dbFile->d_name);
-		lstat(cat_dir_path, &buf);
-        if(	strcmp(dbFile->d_name, ".")!=0 &&
-			strcmp(dbFile->d_name, "..")!=0 &&
-			S_ISDIR(buf.st_mode)){ //folder
-
-        	DIR *catDir = NULL;
-        	struct dirent *catFile = NULL;
-        	catDir = opendir(cat_dir_path);
-        	if(!catDir) { //directory
-        		fprintf(stderr, "ERROR\n");
-        	}
-        	while( (catFile = readdir(catDir)) != NULL ){
-                memset(&buf, 0, sizeof(struct stat));
-                strcpy(srcfile, cat_dir_path);
-				strcat(srcfile,"/");
-				strcat(srcfile,catFile->d_name);
-                lstat(srcfile, &buf);
-        		if(S_ISREG(buf.st_mode)){  //regular file
-        			if (IsImageFile(catFile->d_name)){//For each Image File
-        				strcpy(srcpath, cat_dir_path);
-        				strcat(srcpath,"/");
-        				strcat(srcpath,catFile->d_name);
-        				(*f)(srcpath);
-        			}
-        		}
-        	}
-        	closedir(catDir);
-        }
-	}
-	closedir(dbDir);
-}

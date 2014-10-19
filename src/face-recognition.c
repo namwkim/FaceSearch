@@ -11,6 +11,7 @@
 #include "float.h"
 #include "face-recognition.h"
 #include "helper.h"
+#include <stdio.h>
 
 #define UCHAR unsigned char
 #define CV_GET(img,y,x) CV_IMAGE_ELEM((img), UCHAR, (y), (x))
@@ -102,6 +103,9 @@ CvMat* CalcSpatialHistogram(IplImage* src, int numPatterns, int grid_x, int grid
 	for (int i=0; i<grid_y; i++){
 		for (int j=0; j<grid_x; j++){
 			IplImage* sub_img = CreateSubImg(src, cvRect(i*width,j*height,width,height));
+			if (sub_img==NULL){
+				fprintf(stderr, "Failed to Create a sub image file\n");
+			}
 			CvHistogram* cell_hist = CalcHistogram(sub_img, 0, (numPatterns-1), 1);
 			CvMatND* histmat = (CvMatND*)(cell_hist->bins);
 			if (histmat->dims!=1){//has to be 1 dim

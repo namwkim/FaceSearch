@@ -14,6 +14,10 @@
 #define NEIGHBORS	8
 #define GRID_X		7
 #define GRID_Y		7
+
+#define HUELBP_ON	1
+#define FOREGRND_ON 0
+
 extern const float WEIGHT[49];
 typedef struct _FEATURE{
 	int radius;
@@ -22,6 +26,7 @@ typedef struct _FEATURE{
 	int grid_y;
 	int num_faces;
 	CvMat** histogram;
+	CvMat** hue_histogram;
 } FEATURE;
 
 
