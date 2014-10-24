@@ -20,7 +20,7 @@
 #define CV_GET_R(img,y,x) CV_IMAGE_ELEM((img), UCHAR, (y), (x) * 3 + 2)
 
 
-IplImage* CalcLBP(IplImage* src, int radius, int neighbors){
+IplImage* CalcLBP(IplImage* src, int radius, int neighbors, int uniform_on){
 	if (src->nChannels!=1 || src->depth!=IPL_DEPTH_8U){
 		return NULL;
 	}
@@ -68,9 +68,35 @@ IplImage* CalcLBP(IplImage* src, int radius, int neighbors){
         	}
         }
 	}
+
+	// convert to uniform patterns
+	if (uniform_on){
+		for (i=radius; i<(src->height-radius); i++){
+			for (j=radius; j<(src->width-radius); j++){
+				int pos = (i-radius)*dst->widthStep + (j-radius);
+				dst->imageData[pos] = ConvertToUniform(dst->imageData[pos], neighbors);
+				//printf("val : %d\n", dst->imageData[pos]);
+			}
+		}
+	}
 	return dst;
 }
+int ConvertToUniform(int num, int P){
 
+	int total = 0, uniform = 0;
+	int prev = (num&(1<<(P-1)))>>(P-1);
+	int curr = num&1;
+	total += abs(curr-prev);
+	prev = curr;
+	uniform = curr;
+	for (int i=1; i<P; i++){
+		curr = (num & (1<<i))>>i;
+		total += abs(curr-prev);
+		prev = curr;
+		uniform += curr;
+	}
+	return total<=2? uniform : P+1;
+}
 CvHistogram* CalcHistogram(IplImage* src, int minVal, int maxVal, int normed){
 	// Establish the number of bins.
 	int histSize = maxVal-minVal+1;
@@ -109,9 +135,11 @@ CvMat* CalcSpatialHistogram(IplImage* src, int numPatterns, int grid_x, int grid
 			CvHistogram* cell_hist = CalcHistogram(sub_img, 0, (numPatterns-1), 1);
 			CvMatND* histmat = (CvMatND*)(cell_hist->bins);
 			if (histmat->dims!=1){//has to be 1 dim
+				fprintf(stderr, "histmat->dims has to be 1!\n");
 				return NULL;
 			}
 			if (histmat->dim[0].size != numPatterns){//has to be equal
+				fprintf(stderr, "histmat->dim[0].size has to be equal to numPatterns!\n");
 				return NULL;
 			}
 			//integrate this regional histogram into the full histogram

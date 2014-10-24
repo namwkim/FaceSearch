@@ -18,13 +18,14 @@
 
 ///////////////// Not Part of Official Testing, but Rather experimental stuffs
 void ExperimentForegroundExtraction(){
-	char* filename 	= "./sample/query2/2.png";
+	char* filename 	= "./sample/query2/62.png";
 	IplImage* gray 	= cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
-	IplImage* depth = cvLoadImage("./sample/query2/22.depth.png", CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage* depth = cvLoadImage("./sample/query2/62.depth.png", CV_LOAD_IMAGE_GRAYSCALE);
 	IplImage* gray2 	= cvLoadImage(filename, CV_LOAD_IMAGE_COLOR);
 	IplImage* show 	= cvCreateImage(cvSize(gray->width, gray->height), IPL_DEPTH_8U, 3);
 
-
+	cvShowImage("depth", depth);
+	cvWaitKey(0);
 	// K-Means Clustering for Foreground Extraction
 	int numPts = depth->width*depth->height;
 	double* points = (double* )malloc(numPts*sizeof(double));
@@ -120,7 +121,7 @@ void ExperimentHueExtraction(){
 	cvSplit( hsv, h, s, v, NULL );
 
 	//Create Hue LBP
-	IplImage* hueLBP = CalcLBP(h, RADIUS, NEIGHBORS);
+	IplImage* hueLBP = CalcLBP(h, RADIUS, NEIGHBORS, UNIFORM_ON);
 	cvShowImage( "hueLBP", hueLBP );
 	cvWaitKey(0);
 
@@ -198,7 +199,8 @@ void TestDBInsert(){
 
 void TestDBUpdate(){
 	printf("TestDBUpdate\n");
-	assert(Update("./sample/public_db")==0);
+	assert(Update("./sample/db")==0);
+	//assert(Update("./sample/public_db")==0);
 }
 
 void TestDBDelete(){
@@ -229,24 +231,24 @@ void TestFaceDetection(char* filename){
 		printf("%d faces detected (%s)!\n", faces->total, filename);
 	}
 	// Create two points to represent the face locations
-	/*
-	CvPoint pt1, pt2;
-	for(int i = 0; i < faces->total; i++ )
-	{
-		// Create a new rectangle for drawing the face
 
-		CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
-		pt1.x = r->x;//*scale;
-		pt2.x = (r->x+r->width);//*scale;
-		pt1.y = r->y;//*scale;
-		pt2.y = (r->y+r->height);//*scale;
-		// Draw the rectangle in the input image
-		cvRectangle( frame, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
-	}
-	// Show the image in the window named "result"
-	cvShowImage( "result", frame );
-	cvWaitKey(0);
-	*/
+//	CvPoint pt1, pt2;
+//	for(int i = 0; i < faces->total; i++ )
+//	{
+//		// Create a new rectangle for drawing the face
+//
+//		CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
+//		pt1.x = r->x;//*scale;
+//		pt2.x = (r->x+r->width);//*scale;
+//		pt1.y = r->y;//*scale;
+//		pt2.y = (r->y+r->height);//*scale;
+//		// Draw the rectangle in the input image
+//		cvRectangle( frame, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
+//	}
+//	// Show the image in the window named "result"
+//	cvShowImage( "result", frame );
+//	cvWaitKey(0);
+
 }
 void TestFaceDetectionAll(){
 	ForAllImages("./sample/db", TestFaceDetection);
@@ -255,15 +257,50 @@ void TestFaceDetectionAll(){
 void TestCalcLBP(){
 	printf("Testing TestCalcLBP...\n");
 
-	IplImage* greyImg = cvLoadImage("./sample/query2/102.png", CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage* greyImg = cvLoadImage("./sample/query2/12.png", CV_LOAD_IMAGE_GRAYSCALE);
 	assert(greyImg!=NULL);
 	cvShowImage( "result", greyImg );
 	cvWaitKey(0);
 
 
-	IplImage* lbp = CalcLBP(greyImg, 1, 8);
+	IplImage* lbp = CalcLBP(greyImg, 2, 8, 0);
 	assert(lbp!=NULL);
 	cvShowImage( "result", lbp );
+	cvWaitKey(0);
+}
+void TestCalcHueLBP(){
+	printf("Testing TestCalc Hue-LBP...\n");
+
+	IplImage* rgbImg = cvLoadImage("./sample/query2/142.png", CV_LOAD_IMAGE_COLOR);
+	assert(rgbImg!=NULL);
+	cvShowImage( "result", rgbImg );
+	cvWaitKey(0);
+
+	IplImage *hsv_img, *h, *s, *v;
+
+	// convert to hsv image
+	hsv_img = cvCreateImage( cvGetSize(rgbImg), IPL_DEPTH_8U, 3);
+	cvCvtColor(rgbImg, hsv_img, CV_RGB2HSV);
+
+	h = cvCreateImage( cvGetSize(hsv_img), IPL_DEPTH_8U, 1 );
+	s = cvCreateImage( cvGetSize(hsv_img), IPL_DEPTH_8U, 1 );
+	v = cvCreateImage( cvGetSize(hsv_img), IPL_DEPTH_8U, 1 );
+
+	// Split image onto the color planes
+	cvSplit( hsv_img, h, s, v, NULL );
+
+	//quantization
+	int numPts = h->width*h->height;
+	for(int i=0; i<numPts; i++){
+		int val = (unsigned int) h->imageData[i];
+		h->imageData[i] = (val/16)*10;
+	}
+
+	cvShowImage( "hue", h );
+	cvWaitKey(0);
+	IplImage* huelbp = CalcLBP(h, 2, 8, 0);
+	assert(huelbp!=NULL);
+	cvShowImage( "hue-lbp", huelbp );
 	cvWaitKey(0);
 }
 int TestFaceRecognition(){
@@ -300,7 +337,7 @@ int TestFaceRecognition(){
 //	cvShowImage( "query face", queryFace );
 //	cvWaitKey(0);
 	// LBP and Spatial Histogram for Query Face
-	IplImage* lbpQuery = CalcLBP(queryFace, 1, 8);
+	IplImage* lbpQuery = CalcLBP(queryFace, 2, 8, UNIFORM_ON);
 	CvMat* histQuery = CalcSpatialHistogram(lbpQuery, pow(2, 8), 8, 8);
 	// Find Query Face in the People Faces
 
@@ -309,7 +346,7 @@ int TestFaceRecognition(){
 	for(int i = 0; i < numPeople; i++ )
 	{
 
-		IplImage* lbp = CalcLBP(faces[i], 1, 8);
+		IplImage* lbp = CalcLBP(faces[i], 2, 8, UNIFORM_ON);
 		CvMat* hist = CalcSpatialHistogram(lbp, pow(2, 8), 8, 8);
 		float score = CompareHistograms(histQuery, hist, NULL);
 		if (score < minScore){
@@ -594,12 +631,19 @@ int TestPublicSearchOne(){
 	printf("exec time : %f\n", exectime);
 	return 0;
 }
+
+void TextConvertToUniform(){
+	int num = 255;
+	int uniform = ConvertToUniform(num, 8);
+	printf("%d -> %d\n", num, uniform);
+}
 int main()
 {
 	//DB Handler Test
 //	TestDBInsert();
 //	TestDBDelete();
 //	TestDBUpdate();
+//	TestFaceDetection("./sample/db/faces/53.png");
 //	TestFaceDetectionAll();
 //	TestFaceRecognition();
 //	TestMakeFeature();
@@ -608,5 +652,8 @@ int main()
 //	ExperimentForegroundExtraction();
 //	TestFaceDetection("./sample/public_query/ccjame.1.png");
 //	TestPublicSearchOne();
+//	TestCalcLBP();
+//	TestCalcHueLBP();
+//	TextConvertToUniform();
 	return 0;
 }

@@ -17,6 +17,7 @@
 
 #define HUELBP_ON	1
 #define FOREGRND_ON 0
+#define UNIFORM_ON 	1
 
 extern const float WEIGHT[49];
 typedef struct _FEATURE{

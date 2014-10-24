@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <opencv_storage>
-<radius>2</radius>
+<radius>1</radius>
 <neighbors>8</neighbors>
 <grid_x>7</grid_x>
 <grid_y>7</grid_y>

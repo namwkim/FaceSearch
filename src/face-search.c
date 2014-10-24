@@ -121,7 +121,7 @@ int MakeFeatureInMem(
 	IplImage* gray_img = RGBA;
 	if (RGBA->nChannels > 1) {
 		gray_img = cvCreateImage(cvGetSize(RGBA), IPL_DEPTH_8U, 1 );
-		cvCvtColor( RGBA, gray_img, CV_BGR2GRAY );
+		cvCvtColor( RGBA, gray_img, CV_RGB2GRAY );
 	}
 //	cvEqualizeHist(gray_img,gray_img);
 
@@ -130,6 +130,7 @@ int MakeFeatureInMem(
 	feature->radius 	= RADIUS;
 	feature->neighbors	= NEIGHBORS;
 
+	int numPatterns = UNIFORM_ON? (NEIGHBORS+2) : pow(2.0, NEIGHBORS);
 	//detect faces
 	CvSeq* faces;
 	int retCode = DetectFaces(gray_img, depth, &faces, FOREGRND_ON);
@@ -148,13 +149,13 @@ int MakeFeatureInMem(
 			// Create a new rectangle for drawing the face
 			CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
 			IplImage* face_img = CreateSubImg(gray_img, *r);
-			IplImage* lbp_img =  CalcLBP(face_img, RADIUS, NEIGHBORS);
+			IplImage* lbp_img =  CalcLBP(face_img, RADIUS, NEIGHBORS, UNIFORM_ON);
 
 			if (lbp_img==NULL){
 				fprintf(stderr, "failed to create lbp image!\n");
 				return 1;
 			}
-			feature->histogram[i] = CalcSpatialHistogram(lbp_img, pow(2.0, NEIGHBORS), GRID_X, GRID_Y);
+			feature->histogram[i] = CalcSpatialHistogram(lbp_img, numPatterns, GRID_X, GRID_Y);
 			if (feature->histogram[i]==NULL){
 				fprintf(stderr, "failed to create spatial histogram!\n");
 				return 2;
@@ -167,13 +168,13 @@ int MakeFeatureInMem(
 				IplImage* hue_face_img = CreateSubImg(h, *r);
 
 				//Create Hue LBP
-				IplImage* hue_lbp = CalcLBP(hue_face_img, RADIUS, NEIGHBORS);
+				IplImage* hue_lbp = CalcLBP(hue_face_img, RADIUS, NEIGHBORS, UNIFORM_ON);
 				if (hue_lbp==NULL){
 					fprintf(stderr, "failed to create hue-lbp image!\n");
 					return 1;
 				}
 				//Create Hue Spatial Histogram
-				feature->hue_histogram[i] = CalcSpatialHistogram(hue_lbp, pow(2.0, NEIGHBORS), GRID_X, GRID_Y);
+				feature->hue_histogram[i] = CalcSpatialHistogram(hue_lbp, numPatterns, GRID_X, GRID_Y);
 				if (feature->hue_histogram[i]==NULL){
 					fprintf(stderr, "failed to create hue spatial histogram!\n");
 					return 2;
@@ -297,7 +298,7 @@ float CalcSimilarity(int num_faces1, int num_faces2, CvMat** histogram1, CvMat**
 				faceidx = j;
 			}
 		}
-		if (faceidx!=-1){
+		if (faceidx!=-1 && minDist<FACE_THRESHOLD){
 			queryScore+=(-1.0f*(minDist/FACE_THRESHOLD)) + 1.0f; //[-inf, 1.0];
 		}
 	}
@@ -333,7 +334,7 @@ void CompareImage(char* db_image, FEATURE* feature, CvSeq* scores){
 			float hue_queryScore = CalcSimilarity(feature->num_faces, DBFeature.num_faces, feature->histogram, DBFeature.histogram);
 			float hue_DBScore = CalcSimilarity(DBFeature.num_faces, feature->num_faces, DBFeature.hue_histogram, feature->hue_histogram);
 			float hue_totalScore = (feature->num_faces==0? 0 : hue_queryScore/feature->num_faces) + (DBFeature.num_faces==0? 0:hue_DBScore/DBFeature.num_faces);
-			totalScore = 0.5*totalScore  + 0.5*hue_totalScore;
+			totalScore = 0.8*totalScore  + 0.2*hue_totalScore;
 			//printf("hue-lbp score: %f\n", hue_totalScore);
 		}
 

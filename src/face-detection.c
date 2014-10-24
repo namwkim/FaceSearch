@@ -14,7 +14,7 @@
 #include "kmeans.h"
 
 static CvMemStorage* face_storage = 0;
-static CvMemStorage* eye_storage = 0;
+//static CvMemStorage* eye_storage = 0;
 static CvHaarClassifierCascade* face_cascade = 0;
 //static CvHaarClassifierCascade* eye_cascade = 0;
 const char* cascade_face_name =
@@ -29,7 +29,7 @@ int DetectFaces( IplImage* img, IplImage* depth, CvSeq** faces, int foregrnd_on)
 
 	if (img->nChannels > 1) {
 		greyImg = cvCreateImage(size, IPL_DEPTH_8U, 1 );
-		cvCvtColor( img, greyImg, CV_BGR2GRAY );
+		cvCvtColor( img, greyImg, CV_RGB2GRAY );
 	}else{
 		greyImg = img;
 	}
@@ -71,12 +71,12 @@ int DetectFaces( IplImage* img, IplImage* depth, CvSeq** faces, int foregrnd_on)
 		face_storage = cvCreateMemStorage(0);
 		if( !face_storage )	return 1;
 	}
-	if (eye_storage == NULL){
-		eye_storage = cvCreateMemStorage(0);
-		if( !eye_storage )	return 1;
-	}
+//	if (eye_storage == NULL){
+//		eye_storage = cvCreateMemStorage(0);
+//		if( !eye_storage )	return 1;
+//	}
 	cvClearMemStorage( face_storage );
-	cvClearMemStorage( eye_storage );
+//	cvClearMemStorage( eye_storage );
 
 	// Find whether the cascade is loaded:
 	if( face_cascade == NULL){
