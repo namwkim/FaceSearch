@@ -199,8 +199,21 @@ void TestDBInsert(){
 
 void TestDBUpdate(){
 	printf("TestDBUpdate\n");
-	assert(Update("./sample/db")==0);
-	//assert(Update("./sample/public_db")==0);
+	int numImages = 50;
+	float avgExec = 0.0f;
+//	clock_t start = clock();
+//	assert(Update("./sample/db/faces2")==0);
+//	clock_t end = clock();
+//	avgExec = ((float)(end - start))/CLOCKS_PER_SEC;
+//	printf("exec time : %f\n", avgExec/numImages);
+
+	numImages = 3060;
+	clock_t start = clock();
+	assert(Update("./sample/public_db")==0);
+	clock_t end = clock();
+	avgExec = ((float)(end - start))/CLOCKS_PER_SEC;
+	printf("exec time : %f\n", avgExec/numImages);
+
 }
 
 void TestDBDelete(){
@@ -642,12 +655,12 @@ int main()
 	//DB Handler Test
 //	TestDBInsert();
 //	TestDBDelete();
-//	TestDBUpdate();
+	TestDBUpdate();
 //	TestFaceDetection("./sample/db/faces/53.png");
 //	TestFaceDetectionAll();
 //	TestFaceRecognition();
 //	TestMakeFeature();
-	TestSearch();
+//	TestSearch();
 //	TestPublicSearch();
 //	ExperimentForegroundExtraction();
 //	TestFaceDetection("./sample/public_query/ccjame.1.png");

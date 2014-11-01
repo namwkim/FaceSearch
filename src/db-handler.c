@@ -16,7 +16,7 @@
 #include "db-handler.h"
 #include "file-handler.h"
 #include "face-search.h"
-
+#include "time.h"
 // COPY RGBA, DEPTH, FEATURE FILES INTO THE DB
 // IF NO FEATURE AVAILABLE, DERIVE IT
 int Insert(
@@ -214,7 +214,13 @@ void UpdateFile(char* imageFile){
 
     //if (Exists(srcfile)==0){
     //always update features
+    float avgExec = 0.0f;
+    clock_t start = clock();
     MakeFeature(path);
+    clock_t end = clock();
+    avgExec = ((float)(end - start))/CLOCKS_PER_SEC;
+    printf("exec time : %f\n", avgExec);
+
     //}
 }
 
