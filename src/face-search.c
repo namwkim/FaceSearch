@@ -423,7 +423,7 @@ int SearchInMem(
 			strcpy(outputFileNames[i], sc->img_file);
 			outputScores[i] = sc->score;
 		}
-		free(sc->img_file);
+		//free(sc->img_file);
 	}
 	for (int i=scores->total; i<num; i++){
 		outputFileNames[i] 	= NULL;

@@ -201,18 +201,18 @@ void TestDBUpdate(){
 	printf("TestDBUpdate\n");
 	int numImages = 50;
 	float avgExec = 0.0f;
-//	clock_t start = clock();
-//	assert(Update("./sample/db/faces2")==0);
-//	clock_t end = clock();
-//	avgExec = ((float)(end - start))/CLOCKS_PER_SEC;
-//	printf("exec time : %f\n", avgExec/numImages);
-
-	numImages = 3060;
 	clock_t start = clock();
-	assert(Update("./sample/public_db")==0);
+	assert(Update("./sample/db/faces2")==0);
 	clock_t end = clock();
 	avgExec = ((float)(end - start))/CLOCKS_PER_SEC;
 	printf("exec time : %f\n", avgExec/numImages);
+
+//	numImages = 3060;
+//	clock_t start = clock();
+//	assert(Update("./sample/public_db")==0);
+//	clock_t end = clock();
+//	avgExec = ((float)(end - start))/CLOCKS_PER_SEC;
+//	printf("exec time : %f\n", avgExec/numImages);
 
 }
 
@@ -245,22 +245,22 @@ void TestFaceDetection(char* filename){
 	}
 	// Create two points to represent the face locations
 
-//	CvPoint pt1, pt2;
-//	for(int i = 0; i < faces->total; i++ )
-//	{
-//		// Create a new rectangle for drawing the face
-//
-//		CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
-//		pt1.x = r->x;//*scale;
-//		pt2.x = (r->x+r->width);//*scale;
-//		pt1.y = r->y;//*scale;
-//		pt2.y = (r->y+r->height);//*scale;
-//		// Draw the rectangle in the input image
-//		cvRectangle( frame, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
-//	}
-//	// Show the image in the window named "result"
-//	cvShowImage( "result", frame );
-//	cvWaitKey(0);
+	CvPoint pt1, pt2;
+	for(int i = 0; i < faces->total; i++ )
+	{
+		// Create a new rectangle for drawing the face
+
+		CvRect* r = (CvRect*)cvGetSeqElem( faces, i ); // Find the dimensions of the face, and scale it if necessary
+		pt1.x = r->x;//*scale;
+		pt2.x = (r->x+r->width);//*scale;
+		pt1.y = r->y;//*scale;
+		pt2.y = (r->y+r->height);//*scale;
+		// Draw the rectangle in the input image
+		cvRectangle( frame, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
+	}
+	// Show the image in the window named "result"
+	cvShowImage( "result", frame );
+	cvWaitKey(0);
 
 }
 void TestFaceDetectionAll(){
@@ -660,7 +660,8 @@ int main()
 //	TestFaceDetectionAll();
 //	TestFaceRecognition();
 //	TestMakeFeature();
-//	TestSearch();
+	TestSearch();
+//	TestFaceDetection("./sample/query2/190.png");
 //	TestPublicSearch();
 //	ExperimentForegroundExtraction();
 //	TestFaceDetection("./sample/public_query/ccjame.1.png");
