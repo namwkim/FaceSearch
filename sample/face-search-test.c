@@ -202,7 +202,7 @@ void TestDBUpdate(){
 	int numImages = 50;
 	float avgExec = 0.0f;
 	clock_t start = clock();
-	assert(Update("./sample/db/faces2")==0);
+	assert(Update("./sample/db")==0);
 	clock_t end = clock();
 	avgExec = ((float)(end - start))/CLOCKS_PER_SEC;
 	printf("exec time : %f\n", avgExec/numImages);
@@ -411,8 +411,8 @@ int TestSearch(){
 	int testfileNums[18] = {12, 22, 32, 42, 52, 62, 72, 82, 92, 102, 112, 122, 142, 150, 160, 170, 180, 190};
 
 	int num = 20;
-	int num_cat = 2;
-	char* categories[2] = {"faces", "faces2"};
+	int num_cat = 1;
+	char* categories[1] = {"faces"};
 	char** outputFileNames = (char**) malloc(num*sizeof(char*));
 	float* outputScores = (float*)malloc(num*sizeof(float));
 
@@ -655,7 +655,7 @@ int main()
 	//DB Handler Test
 //	TestDBInsert();
 //	TestDBDelete();
-	TestDBUpdate();
+//	TestDBUpdate();
 //	TestFaceDetection("./sample/db/faces/53.png");
 //	TestFaceDetectionAll();
 //	TestFaceRecognition();
